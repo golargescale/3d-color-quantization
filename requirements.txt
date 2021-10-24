@@ -3,3 +3,7 @@ pandas
 streamlit
 opencv-python-headless
 Pillow
+torch
+torchvision
+dominate
+scipy
