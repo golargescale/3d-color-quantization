@@ -7,3 +7,6 @@ torch
 torchvision
 dominate
 scipy
+sklearn
+scikit-image
+dlib
