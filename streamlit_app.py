@@ -1,11 +1,24 @@
-# https://medium.com/analytics-vidhya/meet-streamlit-sharing-build-a-simple-photo-editor-9d9e2e8872a
+# USAGE
+# python quant.py  --clusters 8 --image images/worldcup.jpg --saveimage images/worldcup-quant.jpg
+# python quant.py  --clusters 8 --image images/nature.png --saveimage images/nature-quant.png
+# python quant.py  --clusters 4 --image images/backgroundcut_highres.png --saveimage images/erichires-quant.png
+# python quant.py  --clusters 4 --image images/backgroundcut_600.png --saveimage images/eric600-quant.png
+# python quant.py  --clusters 4 --image images/backgroundcut_600.jpg --saveimage images/eric600-quant.jpg
+
+# import the necessary packages
+from sklearn.cluster import MiniBatchKMeans
 import numpy as np
-import streamlit as st
+import argparse
 import cv2
+
+# import numpy as np
+import streamlit as st
+# import cv2
 from  PIL import Image, ImageEnhance
 from urllib.request import urlopen
 
 Output_image = 500
+quantization_colors = 4;
 
 def main():
     @st.cache
@@ -33,9 +46,47 @@ def main():
             st.sidebar.text('Original Image')
             st.sidebar.image(image, width=200)
 
-        filters = st.sidebar.radio('Filters', ['Original','Grayscale', 'Sepia', 'Blur', 'Contour', 'Sketch'])
+        filters = st.sidebar.radio('Filters', ['Original','Quantization','Grayscale', 'Sepia', 'Blur', 'Contour', 'Sketch'])
 
-        if filters == 'Grayscale':
+        if filters == 'Quantization':
+            img_convert = np.array(image.convert('RGB'))
+
+            # load the image and grab its width and height
+            # image = cv2.imread(img)
+            image = img_convert
+            (h, w) = image.shape[:2]
+
+            # convert the image from the RGB color space to the L*a*b*
+            # color space -- since we will be clustering using k-means
+            # which is based on the euclidean distance, we'll use the
+            # L*a*b* color space where the euclidean distance implies
+            # perceptual meaning
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+
+            # reshape the image into a feature vector so that k-means
+            # can be applied
+            image = image.reshape((image.shape[0] * image.shape[1], 3))
+
+            # apply k-means using the specified number of clusters and
+            # then create the quantized image based on the predictions
+            clt = MiniBatchKMeans(n_clusters = quantization_colors)
+            labels = clt.fit_predict(image)
+            quant = clt.cluster_centers_.astype("uint8")[labels]
+
+            # reshape the feature vectors to images
+            quant = quant.reshape((h, w, 3))
+            image = image.reshape((h, w, 3))
+
+            # convert from L*a*b* to RGB
+            quant = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
+            image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+
+            # display the images and wait for a keypress
+            # cv2.imwrite(args["saveimage"], quant)
+            # cv2.imshow("image", np.hstack([image, quant]))
+            st.image(quant, width=Output_image)
+
+        elif filters == 'Grayscale':
             img_convert = np.array(image.convert('RGB'))
             gray_image = cv2.cvtColor(img_convert, cv2.COLOR_RGB2GRAY)
             st.image(gray_image, width=Output_image)
@@ -112,41 +163,53 @@ def main():
 if __name__ == '__main__':
     main()
 
-# from collections import namedtuple
-# import altair as alt
-# import math
-# import pandas as pd
-# import streamlit as st
-
-# """
-# # Welcome to Streamlit by GLS!
-
-# Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
-
-# If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-# forums](https://discuss.streamlit.io).
-
-# In the meantime, below is an example of what you can do with just a few lines of code:
-# """
 
 
-# with st.echo(code_location='below'):
-#     total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-#     num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
 
-#     Point = namedtuple('Point', 'x y')
-#     data = []
 
-#     points_per_turn = total_points / num_turns
 
-#     for curr_point_num in range(total_points):
-#         curr_turn, i = divmod(curr_point_num, points_per_turn)
-#         angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-#         radius = curr_point_num / total_points
-#         x = radius * math.cos(angle)
-#         y = radius * math.sin(angle)
-#         data.append(Point(x, y))
 
-#     st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-#         .mark_circle(color='#0068c9', opacity=0.5)
-#         .encode(x='x:Q', y='y:Q'))
+
+
+# # construct the argument parser and parse the arguments
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-i", "--image", required = True, help = "Path to the image")
+# ap.add_argument("-c", "--clusters", required = True, type = int,
+#   help = "# of clusters")
+# ap.add_argument("-s", "--saveimage", required=True,
+#     help="path to save image")
+# args = vars(ap.parse_args())
+
+# # load the image and grab its width and height
+# image = cv2.imread(args["image"])
+# (h, w) = image.shape[:2]
+
+# # convert the image from the RGB color space to the L*a*b*
+# # color space -- since we will be clustering using k-means
+# # which is based on the euclidean distance, we'll use the
+# # L*a*b* color space where the euclidean distance implies
+# # perceptual meaning
+# image = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+
+# # reshape the image into a feature vector so that k-means
+# # can be applied
+# image = image.reshape((image.shape[0] * image.shape[1], 3))
+
+# # apply k-means using the specified number of clusters and
+# # then create the quantized image based on the predictions
+# clt = MiniBatchKMeans(n_clusters = args["clusters"])
+# labels = clt.fit_predict(image)
+# quant = clt.cluster_centers_.astype("uint8")[labels]
+
+# # reshape the feature vectors to images
+# quant = quant.reshape((h, w, 3))
+# image = image.reshape((h, w, 3))
+
+# # convert from L*a*b* to RGB
+# quant = cv2.cvtColor(quant, cv2.COLOR_LAB2BGR)
+# image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+
+# # display the images and wait for a keypress
+# cv2.imwrite(args["saveimage"], quant)
+# cv2.imshow("image", np.hstack([image, quant]))
+# cv2.waitKey(0)
