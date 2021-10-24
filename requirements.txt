@@ -1,3 +1,5 @@
 altair
 pandas
 streamlit
+opencv-python
+Pillow
